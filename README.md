@@ -1,4 +1,4 @@
-# Blog CMS Backend API
+# Tulip Blog - Blog CMS Backend API
 
 A standalone backend API for a headless CMS built with Node.js, Express, PostgreSQL, and Prisma.
 
