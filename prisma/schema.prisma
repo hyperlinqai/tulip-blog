@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  password       String
+  name           String
+  bio            String?
+  avatar         String?
+  role           UserRole         @default(AUTHOR)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  media_items    media_items[]
+  posts          Post[]
+  refresh_tokens refresh_tokens[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]   @relation("CategoryToPost")
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts     Post[]   @relation("PostToTag")
+
+  @@map("tags")
+}
+
+model Post {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  content       String
+  excerpt       String?
+  featuredImage String?
+  status        PostStatus    @default(DRAFT)
+  publishedAt   DateTime?
+  authorId      String
+  viewCount     Int           @default(0)
+  readingTime   Int?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  comments      comments[]
+  media_items   media_items[]
+  author        User          @relation(fields: [authorId], references: [id])
+  seo_meta      seo_meta?
+  categories    Category[]    @relation("CategoryToPost")
+  tags          Tag[]         @relation("PostToTag")
+
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([status])
+  @@map("posts")
+}
+
+model comments {
+  id             String     @id @default(cuid())
+  postId         String
+  authorName     String
+  authorEmail    String
+  content        String
+  approved       Boolean    @default(false)
+  parentId       String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  comments       comments?  @relation("commentsTocomments", fields: [parentId], references: [id])
+  other_comments comments[] @relation("commentsTocomments")
+  posts          Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([approved])
+  @@index([postId])
+}
+
+model media_items {
+  id            String   @id @default(cuid())
+  cloudinaryId  String   @unique
+  cloudinaryUrl String
+  publicUrl     String
+  format        String
+  resourceType  String
+  width         Int?
+  height        Int?
+  size          Int?
+  altText       String?
+  caption       String?
+  postId        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  uploadedBy    String
+  posts         Post?    @relation(fields: [postId], references: [id])
+  user          User     @relation(fields: [uploadedBy], references: [id])
+}
+
+model refresh_tokens {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  users     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model seo_meta {
+  id                 String  @id @default(cuid())
+  postId             String  @unique
+  metaTitle          String?
+  metaDescription    String?
+  metaKeywords       String?
+  ogTitle            String?
+  ogDescription      String?
+  ogImage            String?
+  twitterCard        String?
+  twitterTitle       String?
+  twitterDescription String?
+  twitterImage       String?
+  canonicalUrl       String?
+  noIndex            Boolean @default(false)
+  noFollow           Boolean @default(false)
+  structuredData     Json?
+  posts              Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  AUTHOR
+  VIEWER
+}
